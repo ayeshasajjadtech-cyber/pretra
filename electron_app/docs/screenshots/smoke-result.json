@@ -1,0 +1,17 @@
+{
+  "capturedAt": "2026-11-07T19:36:34.401Z",
+  "state": {
+    "state": "active",
+    "simulated": true,
+    "hasStream": false,
+    "cameraActive": false,
+    "breathing": 15.048855905862164,
+    "pulse": 74.40998018849113,
+    "breathingValid": true,
+    "pulseValid": true,
+    "durationMs": 2534,
+    "savedCount": 0,
+    "summary": null,
+    "error": null
+  }
+}

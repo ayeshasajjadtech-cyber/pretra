@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Breathe Garden is a consent-first generative landscape shaped by live breathing and pulse signals."
+    />
+    <title>Breathe Garden</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="dist/renderer.bundle.js" defer></script>
+  </head>
+  <body>
+    <canvas id="landscape" aria-hidden="true"></canvas>
+
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand" aria-label="Breathe Garden">
+          <span class="brand-mark" aria-hidden="true">
+            <span class="brand-leaf brand-leaf-a"></span>
+            <span class="brand-leaf brand-leaf-b"></span>
+          </span>
+          <span class="brand-copy">
+            <span class="brand-name">Breathe Garden</span>
+            <span class="brand-tagline">A living landscape shaped by your rhythm</span>
+          </span>
+        </div>
+
+        <div class="topbar-actions">
+          <div id="cameraState" class="camera-state" role="status" aria-live="polite">
+            <span class="camera-dot" aria-hidden="true"></span>
+            <span id="cameraStateText">Camera off</span>
+          </div>
+          <button id="savedSessionsBtn" class="button button-quiet" type="button" hidden>
+            Saved sessions <span id="savedCount" class="count-badge">0</span>
+          </button>
+          <button id="stopCameraBtn" class="button button-danger" type="button" disabled>
+            <span class="button-icon" aria-hidden="true"></span>
+            Stop camera
+          </button>
+        </div>
+      </header>
+
+      <main class="stage">
+        <section id="consentPanel" class="panel consent-panel" aria-labelledby="consentTitle">
+          <div class="panel-kicker">A small, living ritual</div>
+          <h1 id="consentTitle">Grow a garden with your breath.</h1>
+          <p class="lede">
+            Breathe Garden turns live breathing and pulse signals into a quiet landscape.
+            It is a creative experience, not a medical device.
+          </p>
+
+          <div class="consent-grid">
+            <div class="consent-step">
+              <span class="step-number">01</span>
+              <div>
+                <h2>You choose when the camera turns on</h2>
+                <p>
+                  The camera stays off until you press Start. A visible Stop camera button
+                  is always available while the session is running.
+                </p>
+              </div>
+            </div>
+            <div class="consent-step">
+              <span class="step-number">02</span>
+              <div>
+                <h2>Your video is not stored by this app</h2>
+                <p>
+                  The Presage SmartSpectra SDK reads camera frames to estimate breathing
+                  rate and pulse. Breathe Garden does not save video, images, or raw frames.
+                </p>
+              </div>
+            </div>
+            <div class="consent-step">
+              <span class="step-number">03</span>
+              <div>
+                <h2>A summary stays in memory</h2>
+                <p>
+                  When you stop, you can keep a short session summary in memory, save it
+                  locally on this device, or discard it. Nothing is saved by default.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <details class="privacy-details">
+            <summary>What happens to my data?</summary>
+            <div class="privacy-copy">
+              <p>
+                The SmartSpectra SDK contacts Presage to validate your API key and
+                subscription. This app sets <code>enableTelemetry: false</code> to opt out
+                of the SDK's aggregate telemetry. Even with telemetry off, SDK
+                authentication and service validation may involve network metadata such as
+                your IP address, app credentials, attestation data, hashed device
+                identifiers, and SDK version. Breathe Garden does not call AI Insights and
+                does not send your metric values to Presage itself.
+              </p>
+              <p>
+                Breathe Garden keeps only an in-memory session summary by default. If you
+                choose to save a summary, it is stored in this app's local storage on this
+                device and can be deleted at any time. The app does not store video,
+                images, or raw camera frames. Read the
+                <span class="inline-note">Consent &amp; Data Handling</span> section in the
+                README for the full disclosure.
+              </p>
+            </div>
+          </details>
+
+          <div id="consentNotice" class="notice" role="alert" hidden></div>
+
+          <label class="consent-check">
+            <input id="consentCheckbox" type="checkbox" />
+            <span>
+              I understand the camera turns on when I press Start, and I consent to the
+              Presage SmartSpectra SDK processing camera frames during this session.
+            </span>
+          </label>
+
+          <div class="consent-actions">
+            <button id="startBtn" class="button button-primary" type="button" disabled>
+              Start breathing garden
+            </button>
+            <span class="consent-footnote">Camera off until you start. Stop any time.</span>
+          </div>
+        </section>
+
+        <section id="sessionPanel" class="panel session-panel" aria-labelledby="sessionTitle" hidden>
+          <div class="session-heading">
+            <div>
+              <div class="panel-kicker">Live session</div>
+              <h2 id="sessionTitle">Your rhythm</h2>
+            </div>
+            <div class="session-timer" aria-label="Session duration">
+              <span id="sessionTimer">00:00</span>
+            </div>
+          </div>
+
+          <div class="metric-grid">
+            <article class="metric-card metric-breathing">
+              <div class="metric-label">
+                <span>Breathing</span>
+                <span class="metric-unit">br/min</span>
+              </div>
+              <div class="metric-value-row">
+                <span id="breathingValue" class="metric-value">—</span>
+                <span id="breathingState" class="metric-state">settling</span>
+              </div>
+              <div class="confidence-track" aria-hidden="true">
+                <span id="breathingConfidence" class="confidence-fill"></span>
+              </div>
+              <canvas id="breathingSpark" class="sparkline" aria-hidden="true"></canvas>
+            </article>
+
+            <article class="metric-card metric-pulse">
+              <div class="metric-label">
+                <span>Pulse</span>
+                <span class="metric-unit">BPM</span>
+              </div>
+              <div class="metric-value-row">
+                <span id="pulseValue" class="metric-value">—</span>
+                <span id="pulseState" class="metric-state">settling</span>
+              </div>
+              <div class="confidence-track" aria-hidden="true">
+                <span id="pulseConfidence" class="confidence-fill"></span>
+              </div>
+              <canvas id="pulseSpark" class="sparkline" aria-hidden="true"></canvas>
+            </article>
+          </div>
+
+          <div class="session-signal">
+            <div class="signal-row">
+              <span class="signal-label">Signal</span>
+              <span id="signalQuality" class="signal-quality">Waiting for camera</span>
+            </div>
+            <p id="validationHint" class="validation-hint" aria-live="polite">
+              Sit comfortably, face the camera, and breathe naturally.
+            </p>
+            <p class="signal-disclaimer">
+              Estimates for a creative experience only. Not a medical measurement.
+            </p>
+          </div>
+        </section>
+
+        <aside id="previewPanel" class="preview-panel" aria-label="Camera preview" hidden>
+          <div class="preview-frame">
+            <video id="previewVideo" muted playsinline autoplay></video>
+            <span class="preview-live">
+              <span class="camera-dot" aria-hidden="true"></span>
+              Live preview
+            </span>
+          </div>
+          <p class="preview-caption">Only the SDK receives these frames. They are not saved.</p>
+        </aside>
+
+        <div id="calibrationPanel" class="calibration-panel" role="status" aria-live="polite" hidden>
+          <span class="calibration-orbit" aria-hidden="true"></span>
+          <div>
+            <strong id="calibrationTitle">Finding your rhythm</strong>
+            <p id="calibrationMessage">
+              Sit comfortably, face the camera, and breathe naturally.
+            </p>
+          </div>
+        </div>
+
+        <div id="simulatedBanner" class="simulated-banner" role="status" hidden>
+          Simulated signal — development only
+        </div>
+
+        <div id="errorBanner" class="error-banner" role="alert" hidden>
+          <div class="error-copy">
+            <strong id="errorTitle">Something interrupted the session</strong>
+            <p id="errorMessage"></p>
+          </div>
+          <div class="error-actions">
+            <button id="errorRetryBtn" class="button button-small" type="button" hidden>
+              Try again
+            </button>
+            <button id="errorDismissBtn" class="button button-small button-quiet" type="button">
+              Dismiss
+            </button>
+          </div>
+        </div>
+
+        <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+      </main>
+
+      <footer class="footer">
+        <span>Breathing + pulse only. No facial expressions. No medical claims.</span>
+        <span class="footer-dot" aria-hidden="true">·</span>
+        <span>Built with the Presage SmartSpectra SDK</span>
+      </footer>
+    </div>
+
+    <dialog id="summaryDialog" class="dialog summary-dialog" aria-labelledby="summaryTitle">
+      <form method="dialog" class="dialog-card">
+        <div class="dialog-kicker">Session complete</div>
+        <h2 id="summaryTitle">A small record of your rhythm</h2>
+        <p class="dialog-lede">
+          This summary exists in memory until you discard it. Saving keeps only these
+          numbers on this device.
+        </p>
+
+        <dl class="summary-grid">
+          <div>
+            <dt>Time in the garden</dt>
+            <dd id="summaryDuration">—</dd>
+          </div>
+          <div>
+            <dt>Average breathing</dt>
+            <dd><span id="summaryBreathing">—</span> <small>br/min</small></dd>
+          </div>
+          <div>
+            <dt>Average pulse</dt>
+            <dd><span id="summaryPulse">—</span> <small>BPM</small></dd>
+          </div>
+          <div id="summaryHrvRow" hidden>
+            <dt>HRV (RMSSD)</dt>
+            <dd><span id="summaryHrv">—</span> <small>ms</small></dd>
+          </div>
+        </dl>
+
+        <p id="summaryNote" class="summary-note"></p>
+
+        <div class="dialog-actions">
+          <button id="summarySaveBtn" class="button button-primary" type="button">
+            Save locally
+          </button>
+          <button id="summaryDiscardBtn" class="button button-quiet" type="button">
+            Discard
+          </button>
+          <button id="summaryAgainBtn" class="button button-quiet" type="button">
+            Start again
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="savedDialog" class="dialog saved-dialog" aria-labelledby="savedTitle">
+      <div class="dialog-card">
+        <div class="dialog-kicker">On this device</div>
+        <h2 id="savedTitle">Saved session summaries</h2>
+        <p class="dialog-lede">
+          These are summary numbers only. They live in this app's local storage and never
+          include video, images, or raw frames.
+        </p>
+        <div id="savedList" class="saved-list"></div>
+        <div class="dialog-actions">
+          <button id="savedClearBtn" class="button button-danger" type="button">
+            Delete all
+          </button>
+          <button id="savedCloseBtn" class="button button-quiet" type="button">Close</button>
+        </div>
+      </div>
+    </dialog>
+
+    <noscript>Breathe Garden needs JavaScript enabled.</noscript>
+  </body>
+</html>

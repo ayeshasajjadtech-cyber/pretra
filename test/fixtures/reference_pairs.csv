@@ -1,0 +1,4 @@
+# PreTra Telemetry Time-Series Export
+Elapsed_Sec,Timestamp_UTC,Breathing_Rate_BRM,Pulse_Rate_BPM,SDK_Confidence_Pct,Reference_Breathing_Rate_BRM,Reference_Pulse_Rate_BPM
+0,"2026-11-12T10:00:00Z",15.0,70.0,90.0,,71.0
+1,"2026-11-12T10:00:01Z",14.0,,85.0,,72.0

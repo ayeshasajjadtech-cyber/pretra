@@ -1,0 +1,27 @@
+{
+  "name": "breathe-garden",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A generative living landscape driven by live breathing and pulse signals from the Presage SmartSpectra SDK.",
+  "main": "main.js",
+  "type": "commonjs",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "npm run build && electron .",
+    "smoke": "npm run build && node scripts/smoke.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@smartspectra/node-sdk": "3.4.0",
+    "dotenv": "^18.0.9"
+  },
+  "devDependencies": {
+    "electron": "^43.8.7",
+    "esbuild": "^0.28.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "koffi@2.16.3": true,
+    "protobufjs@7.6.6": true
+  }
+}
